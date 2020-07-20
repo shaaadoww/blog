@@ -1,0 +1,164 @@
+https://www.bilibili.com/video/BV1T7411g73H?p=1
+
+1.npm install
+会安装在node_modules目录中，不会修改package.json文件。之后运行npm install时不会自动安装。
+
+关于package.json和package-lock.json：
+
+package.json：主要用来定义项目中需要依赖的包
+package-lock.json：在 npm install时候生成一份文件，用以记录当前状态下实际安装的各个npm package的具体来源和版本号。
+每次执行完npm install之后会对应生成package-lock文件，该文件记录了上一次安装的具体的版本号，相当于是提供了一个参考，在出现版本兼容性问题的时候，就可以参考这个文件来修改版本号即可。
+2、npm install --save
+会把webpack包安装到node_modules目录中
+会在package.json的dependencies属性下添加webpack
+之后运行npm install命令时，会自动安装webpack到node_modules目录中
+
+3、npm install --save-dev
+会把webpack包安装到node_modules目录中
+会在package.json的devDependencies属性下添加webpack
+之后运行npm install命令时，会自动安装webpack到node_modules目录中
+
+devDependencies 用于开发环境（本地）
+dependencies 用于生产环境（发布）
+
+devDependencies下列出的模块，是我们开发时用的依赖项，像一些进行单元测试之类的包
+//webpack，gulp等打包工具，这些都是我们开发阶段使用的，代码提交线上时，不需要这些工具，所以我们将它放入devDependencies即可
+ 
+dependencies下的模块，则是我们生产环境中需要的依赖，即正常运行该包时所需要的依赖项
+
+//像jQuery库文件以及vue插件vue-awesome-swiper，vue-router路由等是在打包之后继续用到的，所以放到dependencies里面
+创建项目所需文件夹
+model --- 静态资源
+public --- 数据库操作
+route --- 路由
+views --- 模板
+app.js --- 项目的入口文件
+
+项目初始化 
+npm init -y 生成package.json
+
+安装插件 --- 项目所需的第三方库
+express  ---创建网站服务器和路由
+mongoose  --- 连接数据库和操作数据库
+art-template --- 渲染模板
+express-art-template --- 渲染模板
+
+入口文件app.js
+引用express框架 require('express'),有返回值
+
+const express = require('express');
+
+创建网站服务器后之后，一i定要监听一个端口 listen 才能向外提供服务
+开发的时候一般监听3000，上线一般是80端口，如果输入地址时不输入80端口会自动加上
+
+建立两个路由文件，一个是登录页面，一个是博客页面，需要暴露出去
+创建路由需要用到express.Router(),返回一个路由对象，这样就可以在这个对象下面挂载二级路由了，res对象下send可以把数据输出到页面
+
+要路由生效，回到入口文件app.js引入两个路由模块，要为路由对象匹配一个一级的请求路径，app.use()拦截请求，匹配请求路径
+
+部署静态页面 
+
+引入静态页面后，开放静态资源文件css、js，app.use拦截所有的请求，交给express处理，express.static(资源绝对路径),有关路径都要用到path模块，path.hoin拼接路径
+app.use(express.static(path.join(__dirname,'public'))); ---放css、js的路径，静态页面放到views文件夹下
+ 
+art-template、express-art-template 模块后缀的要求是art，把html文件放在views下并改art后缀
+
+配置好路由后需要res.render渲染模板，render第一个参数要传模板路径，为了不在每一个模板渲染中都写绝对路径，就在app.js中告诉express框架模板所在的位置，当调用res.render方法的时候，方法内部会获取位置信息，从而拼接路径和默认后缀，res.render如果没写后缀方法内部自动拼接
+
+ app.set就是对express的配置
+
+//第一项配置，告诉express当前的模板放在了哪个文件夹下面，当调用res.render方法的时候，方法内部会获取位置信息，从而拼接位置
+app.set('views',path.join(__dirname,'views'));
+//第二项配置，诉express渲染模板的时候，如果没写后缀，默认后缀是什么
+app.set('view engine', 'art');
+//当渲染后缀为art的模板时，所用的模板引擎是什么
+app.engine('art',require('express-art-template'));
+//配置好以上三行代码之后，才能用render方法渲染模板
+
+外链文件（css、js、img）用的是相对路径，模板中的相对路径是相对于浏览器中的地址栏的请求路径，比如说 localhost/admin/index 浏览器会认为/admin是请求路径，index是请求路径下的文件，请求路径有可能变来变去，不安全，为了解决这个问题，就在链接中href，学路径时在路径前面加个/ 代表是绝对路径 --- 模块文件中外链资源要用绝对路径 /
+
+静态资源的外链文件是由浏览器解析的，所以它的相对路径相对的是浏览器的请求地址，模板语法写的相对路径是模板处理的
+
+模板优化
+
+	可以通过子模板的方式 将公共的地方抽离到单独的文件中
+	头部和侧边栏抽离到一个单独的文件里面去
+	再用模板语法{{include '相对路径'}}引入回来
+
+	可以通过模板继承的方式将html的骨架抽离到单独的文件中
+	抽离模板骨架 layout.art
+	每个页面都有独立的css、js或者主体部分，所以要挖几个坑
+	预留几个坑 用block标志
+	{{block '名字'}}{{/block}}
+	其他的模板文件要继承这个模板文件，并且把这个骨架的坑填上
+	骨架继承标记extend 
+	{{extend '骨架路径'}}，通过{{block ' 名字'}}{{/block}}往骨架文件填坑，对应名字填坑
+
+
+登录功能
+
+先连接数据库mongoose，
+	mongoose.connect(),然后在入口文件引入
+设定集合规则
+	mongoose.下的Schema是一个构造函数，创建一个Schema实例，返回值就是集合规则，创建Schema对象后创建集合mongoose.model
+
+在服务器端需要增加一个实现登录功能的请求地址，并指定请求的方式为post，然后开始接收用户表单发过来的请求参数，接收好要进行验证，客户端的验证是不安全的，客户端可以把服务端也要进行验证
+
+给表单form加上提交地址action和请求方式post，input标签家伙是那个name和数据库的字段保持一致，在最后面写个js代码，给表单添加一个提交事件，获取表单的数据进行验证：1.可以给input加id通过id来获取表单控件，2.也可以用jq提供的serializeArray() 获取到表单中用户输入的内容，后悔的是一个数组[{},{},{}]
+
+接收post请求参数要用到body-parser第三方模块
+在入口文件中引入该模块并全局配置，拦截请求，交给body-parser处理，
+body-parser处理完了之后会在req对象下面添加body属性，body属性里面存储的就是post参数
+
+密码加密 node第三方模块 bcrypt 哈希加密 只能单程加密 没有解密
+bcrypt有个方法genSalt生成随机字符串
+bcrypt加密方法hash
+
+网站应用基于http协议，是基于请求和响应模型的应用，这种模型有一个特点，在完成一次客户端和服务器端的请求响应后，两者断开，这就是http协议的无状态性，对于服务器端来讲，只关心请求，不关心客户端是谁，要真正实现登录功能，要建立服务器端和客户端的关联关系，cookie与session，要借助node第三方模块 express-session
+
+向session存储数据时，session这个方法在内部会生成唯一的session_id，并且把这个id存储到用户的cookie里面去，再往服务器发送请求的时候会把cookie也携带传过去，服务器端会接收这个cookie并从cookie中提取session_id,然后在session中查找这个id，查找到了就证明登录成功了
+
+重定向 express提供了一个redirect方法 res.redirect('/home/user');
+
+如何把一些公共数据暴露到模板中？在app对象下面有个对象locals，把数据放到locals下面，在模板中就可以直接拿到了，不需要用res.render渲染到模板了，在登录的时候把用户信息开放到模板中，app.locals.userInfo = user , 在req对象下有一个属性app,这个app对象是创建服务器express()时创建的 const app = express（）
+
+登录拦截 --- 在登录之前不能看到 admin/user，当客户端向服务器发送请求的时候，我们要判断一下请求是不是以/admin开头的，如果是那么就判断一下登录状态，如果登录了就让请求往下走，如果没登录就重定向到登录页面 ，因为登录页面也是以/admin开头的，所以在判断的时候要将登录页面除外，也就是除了登录页面的其他页面都要判断登录的状态，要实现这样的功能就要使用express框架提供的中间件了
+
+中间件是有顺序的，从上到下一次匹配的，要写在路由之前，app.use拦截请求，判断用户登录状态
+
+代码优化 --- 将路由请求函数分离出去 ---再用require()引入回来，注意要把用到的其他模块或者路径在分离出去的时候要引入到分离出去的文件里
+
+新增用户的输入验证 --- 使用第三方模块 Joi -- javascript对象的规则描述语言和验证器
+Joi.validate() 实施验证，返回的是一个promise对象，可以用.then .catch获取返回的结果，不过常用的是async await 异步获取，用try{}catch{} 获取如果不通过的异常
+
+body-parser处理不了文件上传，所以用formidable模块，解析客户端传过来的请求参数，该模块可以处理上传文件
+
+日期处理 dateformat第三方模块，在app.js做全局配置，require('dateformat')返回的是一个方法，调用这个方向就可以对日期进行处理了，现在日期不在js文件中，是在模板文件中，为了在模板中使用这个方法，其实express-art-template依赖的是art-template，向模板内容导入外部变量dateformat，导入后就可以去模板里面使用这个方法了dateFormat(格式化事件,'格式')
+
+数据分页用 mongoose-sex-page 
+
+为了能让art-template在express框架中更好的使用，厂家在原来的基础上进行了进一步封装，于是就有了express-art-template。
+模板语法和art-template相同，只是配置上有些变化。
+
+
+//告诉express框架，当渲染后缀为.art的模板时，使用express-art-template
+app.engine('art', require('express-art-template'));
+
+//告诉express框架模板存放的位置
+app.set('views', path.join(__dirname, 'views');
+
+//设置模板的默认后缀
+app.set('view engine', 'art'); 
+
+
+//渲染模板
+app.get('/', (req, res)=>{
+  //express框架提供的方法
+  res.render('index');
+});
+
+mongoDB数据库添加账号
+
+超级管理员账号和普通账号
+
+独立于项目之后，用命令行添加账号
